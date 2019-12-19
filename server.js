@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
@@ -12,14 +14,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const secret = 'somethingsecret';
+app.use(express.static('build'));
 
+const secret = process.env.SECRET;
+
+/**
+ * Database functions
+ */
 const pool = new Pool({
-  user: 'me',
-  host: 'localhost',
-  database: 'twitterclone',
-  password: 'password',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL
 });
 
 function getTweets() {
@@ -58,13 +61,18 @@ function getUserByHandle(handle) {
   .then(({ rows }) => rows[0]);
 }
 
-app.get('/session', authenticate, function (req, res) {
+/**
+ * API Routes
+ */
+const api = express();
+
+api.get('/session', authenticate, function (req, res) {
   res.send({
     message: 'You are authenticated'
   });
 });
 
-app.post('/session', async function (req, res) {
+api.post('/session', async function (req, res) {
   const { handle, password } = req.body;
 
   console.log({ handle, password });
@@ -90,7 +98,7 @@ app.post('/session', async function (req, res) {
   });
 });
 
-app.post('/tweets', authenticate, async function(req, res) {
+api.post('/tweets', authenticate, async function(req, res) {
   const { id } = req.user;
   const { message } = req.body;
 
@@ -98,9 +106,16 @@ app.post('/tweets', authenticate, async function(req, res) {
   res.send(newTweet);
 });
 
-app.get('/tweets', async function (req, res) {
+api.get('/tweets', async function (req, res) {
   const tweets = await getTweets();
   res.send(tweets);
 });
 
-app.listen(3333);
+app.use('/api', api);
+
+/**
+ * Start server
+ */
+app.listen(process.env.PORT, () => {
+  console.log(`Listening to port ${process.env.PORT}`)
+});

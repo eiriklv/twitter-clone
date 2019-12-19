@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3333';
+const API_URL = '/api';
 
 export function getTweets() {
   return fetch(`${API_URL}/tweets`)
